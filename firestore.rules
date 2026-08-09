@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc(churchId) {
+      return get(/databases/$(database)/documents/churches/$(churchId)/users/$(request.auth.uid));
+    }
+
+    function belongsToChurch(churchId) {
+      return signedIn() && userDoc(churchId).data.churchId == churchId;
+    }
+
+    function role(churchId) {
+      return userDoc(churchId).data.role;
+    }
+
+    function isAdmin(churchId) {
+      return belongsToChurch(churchId) && role(churchId) == 'Administrator';
+    }
+
+    function canWriteFinancial(churchId) {
+      return belongsToChurch(churchId) && role(churchId) in ['Administrator', 'Treasurer', 'Assistant Treasurer'];
+    }
+
+    function isAuditor(churchId) {
+      return belongsToChurch(churchId) && role(churchId) == 'Auditor';
+    }
+
+    function unlocked() {
+      return !('auditStatus' in resource.data) || resource.data.auditStatus != 'Locked';
+    }
+
+    match /churches/{churchId} {
+      allow read: if belongsToChurch(churchId);
+      allow write: if isAdmin(churchId);
+
+      match /users/{userId} {
+        allow read: if belongsToChurch(churchId);
+        allow write: if isAdmin(churchId);
+      }
+
+      match /settings/{docId} {
+        allow read: if belongsToChurch(churchId);
+        allow write: if isAdmin(churchId);
+      }
+
+      match /offeringCategories/{docId} {
+        allow read: if belongsToChurch(churchId);
+        allow write: if isAdmin(churchId);
+      }
+
+      match /financialYears/{year}/months/{month}/{collection}/{docId} {
+        allow read: if belongsToChurch(churchId);
+        allow create: if canWriteFinancial(churchId);
+        allow update: if (canWriteFinancial(churchId) && unlocked()) || isAuditor(churchId);
+        allow delete: if false;
+      }
+
+      match /financialYears/{year}/quarters/{quarter}/{collection}/{docId} {
+        allow read: if belongsToChurch(churchId);
+        allow write: if canWriteFinancial(churchId) || isAuditor(churchId);
+        allow delete: if false;
+      }
+
+      match /auditLogs/{docId} {
+        allow read: if belongsToChurch(churchId);
+        allow create: if signedIn();
+        allow update, delete: if false;
+      }
+    }
+  }
+}

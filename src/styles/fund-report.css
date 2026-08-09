@@ -1,0 +1,478 @@
+.fund-report-screen {
+  display: grid;
+  gap: 18px;
+}
+
+.fund-report-toolbar {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.fund-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.report-page {
+  background: white;
+  border: 1px solid #d9d9d9;
+  box-shadow: 0 14px 40px rgba(28, 38, 48, 0.13);
+  margin: 0 auto;
+  max-width: 900px;
+  width: 100%;
+  padding: 34px;
+  color: #151b22;
+}
+
+.report-heading {
+  text-align: center;
+  border-bottom: 2px solid #123c69;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.report-heading h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.2rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.report-heading h3 {
+  margin: 8px 0 0;
+  font-size: 1.05rem;
+}
+
+.report-heading p {
+  margin: 5px 0 0;
+  color: #46505a;
+}
+
+.report-meta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 0.86rem;
+}
+
+.report-section {
+  margin-top: 18px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.report-section h4 {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #cdd8e5;
+  border-bottom: 0;
+  font-size: 0.92rem;
+}
+
+.section-a h4 {
+  background: #e0ecf8;
+}
+
+.section-b h4 {
+  background: #e2f3e7;
+}
+
+.section-c h4 {
+  background: #faf0d8;
+}
+
+.section-d h4 {
+  background: #123c69;
+  color: white;
+}
+
+.section-e h4 {
+  background: #e8f2fa;
+}
+
+.report-table-wrap {
+  overflow-x: auto;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  min-width: 560px;
+}
+
+.report-table th,
+.report-table td {
+  border: 1px solid #cfd6dd;
+  padding: 8px 9px;
+}
+
+.report-table th {
+  background: #f1f6f7;
+  color: #123c69;
+  text-align: left;
+}
+
+.report-table th:not(:first-child) {
+  text-align: center;
+}
+
+.report-table .currency {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.report-total-row td {
+  font-weight: 800;
+  background: #f5f7fa;
+}
+
+.summary-strong td {
+  font-weight: 800;
+  background: #edf4f7;
+}
+
+.summary-grand td {
+  font-weight: 900;
+  background: #123c69;
+  color: white;
+}
+
+.report-signatures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.signature-box {
+  min-height: 116px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.signature-line {
+  border-top: 1px solid #1c2630;
+  height: 0;
+  margin-top: 46px;
+}
+
+.signature-box strong {
+  display: block;
+  text-align: center;
+  margin-top: 0;
+  font-weight: 800;
+}
+
+.signature-box span:last-child {
+  margin-top: 8px;
+}
+
+.empty-report-state {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 22px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.local-fund-book-page {
+  background: white;
+  border: 1px solid #d9d9d9;
+  box-shadow: 0 14px 40px rgba(28, 38, 48, 0.13);
+  color: #000;
+  margin: 0 auto;
+  max-width: 980px;
+  width: 100%;
+  padding: 0;
+}
+
+.local-fund-book-heading {
+  text-align: center;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.local-fund-book-heading h2 {
+  font-size: 1rem;
+  margin: 0;
+  padding: 5px 10px 18px;
+}
+
+.local-fund-book-meta {
+  align-items: center;
+  display: grid;
+  font-size: 0.95rem;
+  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 4px 20px 6px;
+}
+
+.local-fund-book-table-wrap {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.local-fund-book-table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  min-width: 820px;
+  width: 100%;
+}
+
+.local-fund-book-table th,
+.local-fund-book-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 11px 12px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.local-fund-book-table thead th {
+  background: #f1f6f7;
+  color: var(--blue);
+  font-weight: 800;
+  text-align: center;
+}
+
+.local-fund-book-table tbody td {
+  background: #fff;
+}
+
+.local-fund-book-table .amount-cell {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.local-fund-book-table .empty-book-row {
+  color: #46505a;
+  text-align: center;
+}
+
+.local-fund-book-table .book-total-row th,
+.local-fund-book-table .book-half-row th {
+  background: #f5f7fa;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.local-fund-book-table .book-total-row td,
+.local-fund-book-table .book-half-row td {
+  background: #f5f7fa;
+  font-weight: 800;
+}
+
+.local-fund-book-table .book-balance-row td {
+  background: #edf4f7;
+}
+
+.local-fund-book-table .book-total-row .amount-cell,
+.local-fund-book-table .book-half-row .amount-cell {
+  border-bottom: 1px solid var(--line);
+}
+
+.local-fund-book-signature {
+  margin: 56px 80px 18px auto;
+  text-align: center;
+  width: 210px;
+}
+
+.local-fund-book-signature .signature-line {
+  margin-top: 0;
+}
+
+.local-fund-book-signature strong {
+  display: block;
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .fund-report-screen {
+    gap: 14px;
+  }
+
+  .fund-report-toolbar {
+    padding: 14px;
+  }
+
+  .report-page {
+    max-width: 100%;
+    padding: 18px 14px;
+    overflow: hidden;
+  }
+
+  .report-heading {
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+
+  .report-heading h2 {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  .report-heading h3 {
+    font-size: 0.98rem;
+  }
+
+  .report-table-wrap,
+  .local-fund-book-table-wrap {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    margin-inline: -14px;
+    width: calc(100% + 28px);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .report-table {
+    min-width: 640px;
+  }
+
+  .report-section h4 {
+    font-size: 0.84rem;
+    line-height: 1.25;
+  }
+
+  .fund-report-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fund-report-actions .btn {
+    width: 100%;
+  }
+
+  .report-signatures {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .signature-box {
+    min-height: 96px;
+  }
+
+  .local-fund-book-meta {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 4px 14px 10px;
+    text-align: center;
+  }
+
+  .local-fund-book-heading h2 {
+    font-size: 0.92rem;
+    line-height: 1.25;
+    padding-bottom: 10px;
+  }
+
+  .local-fund-book-table {
+    min-width: 760px;
+  }
+
+  .local-fund-book-signature {
+    margin-right: 24px;
+    width: 190px;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .no-print,
+  .sidebar,
+  .topbar,
+  .bottom-nav,
+  .fund-report-toolbar,
+  .fund-report-screen > .page-header,
+  .alert {
+    display: none !important;
+  }
+
+  .app-shell,
+  .main,
+  .content {
+    display: block;
+    padding: 0;
+    margin: 0;
+    max-width: none;
+    background: white;
+  }
+
+  .report-page {
+    border: 0;
+    box-shadow: none;
+    margin: 0;
+    max-width: none;
+    width: 100%;
+    padding: 0;
+  }
+
+  .report-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-table-wrap {
+    overflow: visible;
+  }
+
+  .report-table {
+    min-width: 0;
+    font-size: 9pt;
+  }
+
+  .local-fund-book-page {
+    border: 0;
+    box-shadow: none;
+    max-width: none;
+    width: 100%;
+  }
+
+  .local-fund-book-table-wrap {
+    overflow: visible;
+  }
+
+  .local-fund-book-table {
+    font-size: 8.5pt;
+    min-width: 0;
+  }
+
+  .local-fund-book-table th,
+  .local-fund-book-table td {
+    height: 18pt;
+    padding: 1pt 3pt;
+  }
+}
