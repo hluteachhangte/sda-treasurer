@@ -43,7 +43,7 @@ export function Layout({ activePage, setActivePage, children }) {
     <div className="app-shell">
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
         <div className="brand">
-          <img className="brand-mark" src="/church-logo.png" alt="" aria-hidden="true" />
+          <img className="brand-mark" src={`${import.meta.env.BASE_URL}church-logo.png`} alt="" aria-hidden="true" />
           <div>
             <strong>Bethel Church Treasurer</strong>
             <span>Seventh-day Adventist</span>

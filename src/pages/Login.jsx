@@ -26,7 +26,7 @@ export function Login() {
     <main className="login-page">
       <section className="login-panel">
         <div className="login-brand">
-          <img className="login-logo" src="/church-logo.png" alt="" aria-hidden="true" />
+          <img className="login-logo" src={`${import.meta.env.BASE_URL}church-logo.png`} alt="" aria-hidden="true" />
           <div>
             <h1>Bethel Church Treasurer</h1>
             <p>Seventh-day Adventist</p>
