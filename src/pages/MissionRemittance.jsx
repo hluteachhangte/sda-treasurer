@@ -6,8 +6,9 @@ import { Field, Input, Select, Textarea } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
 import { useData } from "../contexts/DataContext";
-import { PAYMENT_MODES } from "../data/constants";
-import { buildMonthlySummary, calculateRemittanceTotals, money } from "../utils/calculations";
+import { MONTHS, PAYMENT_MODES } from "../data/constants";
+import { calculateRemittanceTotals, money, toNumber } from "../utils/calculations";
+import { filterEntryRecords } from "../utils/fundReportCalculations";
 
 export function MissionRemittance() {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ export function MissionRemittance() {
   const [overrideReason, setOverrideReason] = useState("");
   const [form, setForm] = useState({
     year: now.getFullYear(),
+    quarter: state.settings.quarters.find((quarter) => quarter.months.includes(now.getMonth() + 1))?.id || state.settings.quarters[0]?.id || "Q1",
     month: now.getMonth() + 1,
     remittanceDate: now.toISOString().slice(0, 10),
     openingMissionBalance: state.settings.openingMissionBalance,
@@ -26,16 +28,40 @@ export function MissionRemittance() {
     attachment: "",
     remarks: ""
   });
-  const monthSummary = buildMonthlySummary(state, { year: form.year, month: form.month });
+  const filters = { year: form.year, quarter: form.quarter, month: form.month };
+  const selectedQuarter = state.settings.quarters.find((quarter) => quarter.id === form.quarter);
+  const availableMonths = selectedQuarter?.months || [];
+  const missionEntries = useMemo(
+    () => filterEntryRecords(state.missionFundEntries || [], filters),
+    [state.missionFundEntries, filters.year, filters.quarter, filters.month]
+  );
+  const previousRemitted = useMemo(
+    () => filterEntryRecords(state.remittances || [], filters).reduce((sum, item) => sum + toNumber(item.amountRemitted), 0),
+    [state.remittances, filters.year, filters.quarter, filters.month]
+  );
+  const missionSummary = useMemo(
+    () => missionEntries.reduce(
+      (totals, entry) => {
+        totals.tithe += toNumber(entry.amounts?.tithe);
+        totals.investment += toNumber(entry.amounts?.investment);
+        totals.fiftyPercentOffering += toNumber(entry.amounts?.fiftyPercentFromLocalFunds);
+        return totals;
+      },
+      { tithe: 0, investment: 0, fiftyPercentOffering: 0 }
+    ),
+    [missionEntries]
+  );
   const values = {
     ...form,
-    tithe: monthSummary.tithe,
-    investment: monthSummary.investment,
-    fiftyPercentOffering: monthSummary.fiftyPercentOffering
+    tithe: missionSummary.tithe,
+    investment: missionSummary.investment,
+    fiftyPercentOffering: missionSummary.fiftyPercentOffering
   };
   const totals = useMemo(() => calculateRemittanceTotals(values), [values]);
-  const exceedsDue = Number(form.amountRemitted || 0) > totals.totalAmountDue;
-  const canSave = Number(form.amountRemitted || 0) >= 0 && (!exceedsDue || overrideReason);
+  const pendingBefore = Math.max(totals.totalAmountDue - previousRemitted, 0);
+  const pendingAfter = pendingBefore - toNumber(form.amountRemitted);
+  const exceedsDue = toNumber(form.amountRemitted) > pendingBefore;
+  const canSave = form.remittanceDate && toNumber(form.amountRemitted) > 0 && (!exceedsDue || overrideReason);
 
   function save() {
     if (!canSave) return;
@@ -43,11 +69,26 @@ export function MissionRemittance() {
       id: crypto.randomUUID(),
       ...values,
       ...totals,
+      quarter: form.quarter,
+      quarterLabel: selectedQuarter?.label || form.quarter,
+      amountRemitted: toNumber(form.amountRemitted),
+      previousRemitted,
+      pendingMissionFund: pendingAfter,
+      status: toNumber(form.amountRemitted) <= 0 ? "Not Remitted" : pendingAfter <= 0 ? "Fully Remitted" : "Partially Remitted",
       createdBy: user.name,
       createdAt: new Date().toISOString(),
       overrideReason
     };
     dispatch({ type: "ADD_REMITTANCE", payload: record, log: { user: user.name, role: user.role, action: "Remittance entry", recordType: "Remittance", recordId: record.id, newValue: record.conferenceReceiptNumber, reason: overrideReason } });
+    setForm((current) => ({
+      ...current,
+      amountRemitted: "",
+      conferenceReceiptNumber: "",
+      transactionReference: "",
+      attachment: "",
+      remarks: ""
+    }));
+    setOverrideReason("");
   }
 
   return (
@@ -56,14 +97,31 @@ export function MissionRemittance() {
       <section className="form-card">
         <div className="form-grid">
           <Field label="Year"><Input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: Number(e.target.value) })} /></Field>
-          <Field label="Month"><Input type="number" min="1" max="12" value={form.month} onChange={(e) => setForm({ ...form, month: Number(e.target.value) })} /></Field>
+          <Field label="Quarter">
+            <Select
+              value={form.quarter}
+              onChange={(e) => {
+                const quarter = state.settings.quarters.find((item) => item.id === e.target.value);
+                setForm({ ...form, quarter: e.target.value, month: quarter?.months?.[0] || form.month });
+              }}
+            >
+              {state.settings.quarters.map((quarter) => <option key={quarter.id} value={quarter.id}>{quarter.label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Month">
+            <Select value={form.month} onChange={(e) => setForm({ ...form, month: Number(e.target.value) })}>
+              {availableMonths.map((month) => <option key={month} value={month}>{MONTHS[month - 1]}</option>)}
+            </Select>
+          </Field>
           <Field label="Remittance date"><Input type="date" value={form.remittanceDate} onChange={(e) => setForm({ ...form, remittanceDate: e.target.value })} /></Field>
           <Field label="Opening Mission Fund balance"><Input type="number" min="0" value={form.openingMissionBalance} onChange={(e) => setForm({ ...form, openingMissionBalance: e.target.value })} /></Field>
-          <Field label="Tithe received"><Input value={money(monthSummary.tithe, state.settings.currencySymbol)} readOnly /></Field>
-          <Field label="Investment received"><Input value={money(monthSummary.investment, state.settings.currencySymbol)} readOnly /></Field>
-          <Field label="50% Offering"><Input value={money(monthSummary.fiftyPercentOffering, state.settings.currencySymbol)} readOnly /></Field>
+          <Field label="Tithe received"><Input value={money(missionSummary.tithe, state.settings.currencySymbol)} readOnly /></Field>
+          <Field label="Investment received"><Input value={money(missionSummary.investment, state.settings.currencySymbol)} readOnly /></Field>
+          <Field label="50% from Local Fund"><Input value={money(missionSummary.fiftyPercentOffering, state.settings.currencySymbol)} readOnly /></Field>
           <Field label="Total Mission Fund received"><Input value={money(totals.missionFundReceived, state.settings.currencySymbol)} readOnly /></Field>
           <Field label="Total amount due"><Input value={money(totals.totalAmountDue, state.settings.currencySymbol)} readOnly /></Field>
+          <Field label="Already remitted"><Input value={money(previousRemitted, state.settings.currencySymbol)} readOnly /></Field>
+          <Field label="Pending before this remittance"><Input value={money(pendingBefore, state.settings.currencySymbol)} readOnly /></Field>
           <Field label="Amount remitted"><Input type="number" min="0" value={form.amountRemitted} onChange={(e) => setForm({ ...form, amountRemitted: e.target.value })} /></Field>
           <Field label="Conference receipt number"><Input value={form.conferenceReceiptNumber} onChange={(e) => setForm({ ...form, conferenceReceiptNumber: e.target.value })} /></Field>
           <Field label="Payment mode"><Select value={form.paymentMode} onChange={(e) => setForm({ ...form, paymentMode: e.target.value })}>{PAYMENT_MODES.map((mode) => <option key={mode}>{mode}</option>)}</Select></Field>
@@ -74,10 +132,12 @@ export function MissionRemittance() {
       </section>
       <section className="calc-panel">
         <h2>Remittance Status</h2>
-        <strong>{totals.status}</strong>
+        <strong>{toNumber(form.amountRemitted) <= 0 ? "Not Remitted" : pendingAfter <= 0 ? "Fully Remitted" : "Partially Remitted"}</strong>
         <dl>
           <dt>Pending Mission Fund</dt>
-          <dd>{money(totals.pendingMissionFund, state.settings.currencySymbol)}</dd>
+          <dd>{money(Math.max(pendingAfter, 0), state.settings.currencySymbol)}</dd>
+          <dt>Mission Fund entries included</dt>
+          <dd>{missionEntries.length}</dd>
         </dl>
       </section>
       {exceedsDue && <div className="alert warning">Amount remitted exceeds total amount due. Administrator override reason is required.<Input value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="Override reason" /></div>}
@@ -85,15 +145,22 @@ export function MissionRemittance() {
       <DataTable
         rows={state.remittances}
         columns={[
-          { key: "remittanceDate", label: "Date" },
-          { key: "month", label: "Month" },
+          { key: "remittanceDate", label: "Date", render: (row) => formatDate(row.remittanceDate) },
+          { key: "quarterLabel", label: "Quarter", render: (row) => row.quarterLabel || row.quarter || "" },
+          { key: "month", label: "Month", render: (row) => MONTHS[Number(row.month) - 1] || row.month },
           { key: "totalAmountDue", label: "Due", render: (row) => money(row.totalAmountDue, state.settings.currencySymbol) },
           { key: "amountRemitted", label: "Remitted", render: (row) => money(row.amountRemitted, state.settings.currencySymbol) },
-          { key: "pendingMissionFund", label: "Pending", render: (row) => money(row.pendingMissionFund, state.settings.currencySymbol) },
+          { key: "pendingMissionFund", label: "Pending", render: (row) => money(Math.max(toNumber(row.pendingMissionFund), 0), state.settings.currencySymbol) },
           { key: "conferenceReceiptNumber", label: "Conference Receipt" },
           { key: "status", label: "Status" }
         ]}
       />
     </div>
   );
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
 }
