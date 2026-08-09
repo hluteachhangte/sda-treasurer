@@ -5,8 +5,9 @@ import { Field, Select } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
 import { SummaryCard } from "../components/SummaryCard";
 import { useData } from "../contexts/DataContext";
-import { MONTHS, OFFERING_CATEGORIES } from "../data/constants";
-import { buildMonthlySummary, groupByMonth, money, toNumber } from "../utils/calculations";
+import { MONTHS } from "../data/constants";
+import { money, toNumber } from "../utils/calculations";
+import { buildFundReportFromState, filterEntryRecords, FUND_REPORT_FIELDS, quarterMonths as reportQuarterMonths } from "../utils/fundReportCalculations";
 
 export function Dashboard() {
   const { state } = useData();
@@ -24,30 +25,25 @@ export function Dashboard() {
     [state.settings.quarters, filters.quarter]
   );
   const quarterMonths = filters.quarter === "all" ? Array.from({ length: 12 }, (_, index) => index + 1) : selectedQuarter?.months?.length ? selectedQuarter.months : [filters.month];
-  const summary = buildMonthlySummary(state, filters);
-  const monthly = groupByMonth(state, filters.year).filter((item) => quarterMonths.includes(item.month));
-  const categoryBreakdown = OFFERING_CATEGORIES.map((cat) => ({
-    name: cat.label,
-    value: summary.offerings.reduce((sum, item) => sum + toNumber(item.offerings?.[cat.key]), 0)
-  })).filter((item) => item.value > 0);
-  const expenditureByDepartment = Object.entries(
-    summary.expenditures.reduce((acc, item) => {
-      Object.entries(item.expenseHeads || {}).forEach(([key, value]) => {
-        acc[key] = (acc[key] || 0) + toNumber(value);
-      });
-      return acc;
-    }, {})
-  ).map(([name, value]) => ({ name, value }));
-  const receiptNumbers = state.offerings.map((item) => item.receiptNumber);
-  const voucherNumbers = state.expenditures.map((item) => item.voucherNumber);
+  const summary = useMemo(() => buildDashboardSummary(state, filters), [state, filters]);
+  const monthly = useMemo(
+    () => buildDashboardMonthlySummary(state, filters.year).filter((item) => quarterMonths.includes(item.month)),
+    [state, filters.year, quarterMonths]
+  );
+  const categoryBreakdown = useMemo(() => buildCategoryBreakdown(summary.source, summary), [summary]);
+  const expenditureByDepartment = useMemo(() => buildExpenditureBreakdown(summary.source.expenditures), [summary.source.expenditures]);
+  const receiptNumbers = [
+    ...(state.localFundEntries || []).map((item) => item.receiptNo),
+    ...(state.localFund100Entries || []).map((item) => item.receiptNo),
+    ...(state.missionFundEntries || []).map((item) => item.receiptNo)
+  ].filter(Boolean);
+  const voucherNumbers = (state.expenditures || []).map((item) => item.voucherNumber).filter(Boolean);
   const warnings = [
-    summary.offeringEntries < 4 && "Missing Sabbath entries",
     new Set(receiptNumbers).size !== receiptNumbers.length && "Duplicate receipt numbers",
     new Set(voucherNumbers).size !== voucherNumbers.length && "Duplicate voucher numbers",
     summary.missionFundPending > 0 && "Mission Fund pending",
     filters.month !== "all" && !state.audits.find((item) => item.year === filters.year && item.month === filters.month && ["Audited", "Locked"].includes(item.status)) && "Unaudited month",
-    Math.abs(summary.grossOfferingTotal - (summary.totalLocalFund + summary.totalMissionFund)) > 0.01 && "Unbalanced records",
-    state.expenditures.some((item) => !item.attachments?.length) && "Missing supporting documents"
+    Math.abs(summary.grossOfferingTotal - (summary.totalLocalFund + summary.totalMissionFund)) > 0.01 && "Unbalanced records"
   ].filter(Boolean);
 
   return (
@@ -202,4 +198,112 @@ function ChartPanel({ title, children }) {
       {children}
     </section>
   );
+}
+
+function buildDashboardSummary(state, filters) {
+  const report = buildFundReportFromState(state, filters);
+  const totals = report.summary.totals;
+  const remittances = filterDashboardRecords(state.remittances || [], filters);
+  const missionFundRemitted = remittances.reduce((sum, item) => sum + toNumber(item.amountRemitted), 0);
+  const openingMissionBalance = toNumber(state.settings.openingMissionBalance);
+  const missionFundDue = openingMissionBalance + totals.totalMissionFund;
+  const missionFundPending = missionFundDue - missionFundRemitted;
+
+  return {
+    source: report.source,
+    grossOfferingTotal: totals.grandTotalCollection,
+    totalLocalFund: totals.totalLocalFund,
+    localFund100: totals.localFund100,
+    totalMissionFund: totals.totalMissionFund,
+    tithe: readSectionAmount(report.summary.sectionC, "Tithe"),
+    investment: readSectionAmount(report.summary.sectionC, "Investment"),
+    fiftyPercentOffering: totals.fiftyPercentOffering,
+    totalExpenditure: totals.totalExpense,
+    localFundBalance: totals.churchFinancialBalance,
+    missionFundDue,
+    missionFundRemitted,
+    missionFundPending,
+    remittances
+  };
+}
+
+function buildDashboardMonthlySummary(state, year) {
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const summary = buildDashboardSummary(state, { year, month, quarter: "all" });
+    return {
+      month,
+      name: new Date(year, index, 1).toLocaleString("en", { month: "short" }),
+      local: summary.totalLocalFund,
+      mission: summary.totalMissionFund,
+      offerings: summary.grossOfferingTotal,
+      expenditure: summary.totalExpenditure,
+      remitted: summary.missionFundRemitted,
+      pending: summary.missionFundPending
+    };
+  });
+}
+
+function buildCategoryBreakdown(source, summary) {
+  const shared = FUND_REPORT_FIELDS.shared.map((field) => ({
+    name: field.label,
+    value: sumAmounts(source.local50, field.key)
+  }));
+  const local100 = FUND_REPORT_FIELDS.local100.map((field) => ({
+    name: field.label,
+    value: sumAmounts(source.local100, field.key)
+  }));
+  const mission = FUND_REPORT_FIELDS.directMission.map((field) => ({
+    name: field.label,
+    value: sumAmounts(source.mission, field.key)
+  }));
+  return [
+    ...shared,
+    ...local100,
+    ...mission,
+    { name: "50% from Local Fund", value: summary.fiftyPercentOffering }
+  ].filter((item) => item.value > 0);
+}
+
+function buildExpenditureBreakdown(expenditures = []) {
+  const labels = {
+    ssDept: "S.S. Dept.",
+    sabbathSchoolDepartment: "S.S. Dept.",
+    churchExpense: "Church Expense",
+    personalMinistries: "Personal/Evangelism",
+    personalEvangelism: "Personal/Evangelism",
+    evangelism: "Personal/Evangelism",
+    ayExpense: "AY",
+    ay: "AY",
+    womenMinistries: "Women's Ministries",
+    womensMinistries: "Women's Ministries",
+    acs: "ACS",
+    building: "Building",
+    buildingFund: "Building",
+    others: "Others"
+  };
+  const totals = expenditures.reduce((acc, item) => {
+    Object.entries(item.expenseHeads || {}).forEach(([key, value]) => {
+      const label = labels[key] || key;
+      acc[label] = (acc[label] || 0) + toNumber(value);
+    });
+    return acc;
+  }, {});
+  return Object.entries(totals).map(([name, value]) => ({ name, value })).filter((item) => item.value > 0);
+}
+
+function filterDashboardRecords(records = [], filters = {}) {
+  return filterEntryRecords(records, filters).filter((record) => {
+    if (filters.quarter === "all" || filters.month !== "all") return true;
+    const month = Number(record.month || new Date(record.date || record.remittanceDate).getMonth() + 1);
+    return reportQuarterMonths(filters.quarter).includes(month);
+  });
+}
+
+function readSectionAmount(section, label) {
+  return section.rows.find((row) => row.label === label)?.amount || 0;
+}
+
+function sumAmounts(records = [], key) {
+  return records.reduce((sum, record) => sum + toNumber(record.amounts?.[key] ?? record.offerings?.[key]), 0);
 }
