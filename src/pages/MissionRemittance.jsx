@@ -1,4 +1,4 @@
-import { Save } from "lucide-react";
+import { Pencil, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "../components/Button";
 import { DataTable } from "../components/DataTable";
@@ -15,6 +15,7 @@ export function MissionRemittance() {
   const { state, dispatch } = useData();
   const now = new Date();
   const [overrideReason, setOverrideReason] = useState("");
+  const [editingId, setEditingId] = useState("");
   const [form, setForm] = useState({
     year: now.getFullYear(),
     quarter: state.settings.quarters.find((quarter) => quarter.months.includes(now.getMonth() + 1))?.id || state.settings.quarters[0]?.id || "Q1",
@@ -36,8 +37,10 @@ export function MissionRemittance() {
     [state.missionFundEntries, filters.year, filters.quarter, filters.month]
   );
   const previousRemitted = useMemo(
-    () => filterEntryRecords(state.remittances || [], filters).reduce((sum, item) => sum + toNumber(item.amountRemitted), 0),
-    [state.remittances, filters.year, filters.quarter, filters.month]
+    () => filterEntryRecords(state.remittances || [], filters)
+      .filter((item) => item.id !== editingId)
+      .reduce((sum, item) => sum + toNumber(item.amountRemitted), 0),
+    [state.remittances, filters.year, filters.quarter, filters.month, editingId]
   );
   const missionSummary = useMemo(
     () => missionEntries.reduce(
@@ -65,8 +68,9 @@ export function MissionRemittance() {
 
   function save() {
     if (!canSave) return;
+    const existing = state.remittances.find((item) => item.id === editingId);
     const record = {
-      id: crypto.randomUUID(),
+      id: editingId || crypto.randomUUID(),
       ...values,
       ...totals,
       quarter: form.quarter,
@@ -75,11 +79,26 @@ export function MissionRemittance() {
       previousRemitted,
       pendingMissionFund: pendingAfter,
       status: toNumber(form.amountRemitted) <= 0 ? "Not Remitted" : pendingAfter <= 0 ? "Fully Remitted" : "Partially Remitted",
-      createdBy: user.name,
-      createdAt: new Date().toISOString(),
+      createdBy: existing?.createdBy || user.name,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedBy: user.name,
+      updatedAt: new Date().toISOString(),
       overrideReason
     };
-    dispatch({ type: "ADD_REMITTANCE", payload: record, log: { user: user.name, role: user.role, action: "Remittance entry", recordType: "Remittance", recordId: record.id, newValue: record.conferenceReceiptNumber, reason: overrideReason } });
+    dispatch({
+      type: editingId ? "UPDATE_REMITTANCE" : "ADD_REMITTANCE",
+      payload: record,
+      log: {
+        user: user.name,
+        role: user.role,
+        action: editingId ? "Remittance edit" : "Remittance entry",
+        recordType: "Remittance",
+        recordId: record.id,
+        previousValue: existing?.conferenceReceiptNumber || "",
+        newValue: record.conferenceReceiptNumber,
+        reason: overrideReason
+      }
+    });
     setForm((current) => ({
       ...current,
       amountRemitted: "",
@@ -88,7 +107,47 @@ export function MissionRemittance() {
       attachment: "",
       remarks: ""
     }));
+    setEditingId("");
     setOverrideReason("");
+  }
+
+  function editEntry(entry) {
+    setEditingId(entry.id);
+    setForm({
+      year: Number(entry.year) || now.getFullYear(),
+      quarter: entry.quarter || state.settings.quarters.find((quarter) => quarter.months.includes(Number(entry.month)))?.id || state.settings.quarters[0]?.id || "Q1",
+      month: Number(entry.month) || now.getMonth() + 1,
+      remittanceDate: entry.remittanceDate || now.toISOString().slice(0, 10),
+      openingMissionBalance: entry.openingMissionBalance ?? state.settings.openingMissionBalance,
+      amountRemitted: entry.amountRemitted ?? "",
+      conferenceReceiptNumber: entry.conferenceReceiptNumber || "",
+      paymentMode: entry.paymentMode || "Bank Transfer",
+      transactionReference: entry.transactionReference || "",
+      attachment: entry.attachment || "",
+      remarks: entry.remarks || ""
+    });
+    setOverrideReason(entry.overrideReason || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function deleteEntry(entry) {
+    if (!window.confirm(`Delete remittance ${entry.conferenceReceiptNumber || formatDate(entry.remittanceDate)}?`)) return;
+    dispatch({
+      type: "DELETE_REMITTANCE",
+      payload: entry,
+      log: {
+        user: user.name,
+        role: user.role,
+        action: "Remittance delete",
+        recordType: "Remittance",
+        recordId: entry.id,
+        previousValue: entry.conferenceReceiptNumber || formatDate(entry.remittanceDate)
+      }
+    });
+    if (editingId === entry.id) {
+      setEditingId("");
+      setOverrideReason("");
+    }
   }
 
   return (
@@ -141,7 +200,7 @@ export function MissionRemittance() {
         </dl>
       </section>
       {exceedsDue && <div className="alert warning">Amount remitted exceeds total amount due. Administrator override reason is required.<Input value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="Override reason" /></div>}
-      <Button disabled={!canSave} onClick={save}><Save size={18} /> Save Remittance</Button>
+      <Button disabled={!canSave} onClick={save}><Save size={18} /> {editingId ? "Update Remittance" : "Save Remittance"}</Button>
       <DataTable
         rows={state.remittances}
         columns={[
@@ -152,7 +211,21 @@ export function MissionRemittance() {
           { key: "amountRemitted", label: "Remitted", render: (row) => money(row.amountRemitted, state.settings.currencySymbol) },
           { key: "pendingMissionFund", label: "Pending", render: (row) => money(Math.max(toNumber(row.pendingMissionFund), 0), state.settings.currencySymbol) },
           { key: "conferenceReceiptNumber", label: "Conference Receipt" },
-          { key: "status", label: "Status" }
+          { key: "status", label: "Status" },
+          {
+            key: "actions",
+            label: "Edit/Delete",
+            render: (row) => (
+              <div className="row-actions">
+                <Button variant="ghost" onClick={() => editEntry(row)} aria-label={`Edit ${row.conferenceReceiptNumber || row.remittanceDate}`}>
+                  <Pencil size={16} />
+                </Button>
+                <Button variant="ghost" onClick={() => deleteEntry(row)} aria-label={`Delete ${row.conferenceReceiptNumber || row.remittanceDate}`}>
+                  <Trash2 size={16} />
+                </Button>
+              </div>
+            )
+          }
         ]}
       />
     </div>

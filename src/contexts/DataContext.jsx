@@ -54,6 +54,10 @@ function reducer(state, action) {
       return addLog({ ...state, expenditures: state.expenditures.filter((item) => item.id !== action.payload.id) }, action.log);
     case "ADD_REMITTANCE":
       return addLog({ ...state, remittances: [action.payload, ...state.remittances] }, action.log);
+    case "UPDATE_REMITTANCE":
+      return addLog({ ...state, remittances: state.remittances.map((item) => (item.id === action.payload.id ? action.payload : item)) }, action.log);
+    case "DELETE_REMITTANCE":
+      return addLog({ ...state, remittances: state.remittances.filter((item) => item.id !== action.payload.id) }, action.log);
     case "UPDATE_AUDIT": {
       const exists = state.audits.some((item) => item.id === action.payload.id);
       return addLog(
