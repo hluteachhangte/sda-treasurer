@@ -2,13 +2,13 @@
   "name": "Bethel Church Treasurer",
   "short_name": "Bethel Treasurer",
   "description": "Church finance records, reports, audit workflow, and remittance tracking.",
-  "start_url": "/",
+  "start_url": "/sda-treasurer/",
   "display": "standalone",
   "background_color": "#f8f5ec",
   "theme_color": "#123c69",
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "/sda-treasurer/icons/icon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
