@@ -33,12 +33,34 @@ service cloud.firestore {
       return !('auditStatus' in resource.data) || resource.data.auditStatus != 'Locked';
     }
 
+    function approvedAccount() {
+      return signedIn() && request.auth.token.email in [
+        'admin@bethelsda.local',
+        'treasurer@bethelsda.local',
+        'elder@bethelsda.local',
+        'guest@bethelsda.local'
+      ];
+    }
+
+    function validSelfRole(churchId, userId) {
+      return request.auth.uid == userId
+        && request.resource.data.churchId == churchId
+        && request.resource.data.email == request.auth.token.email
+        && (
+          (request.auth.token.email == 'admin@bethelsda.local' && request.resource.data.role == 'Administrator')
+          || (request.auth.token.email == 'treasurer@bethelsda.local' && request.resource.data.role == 'Treasurer')
+          || (request.auth.token.email == 'elder@bethelsda.local' && request.resource.data.role == 'Pastor or Church Elder')
+          || (request.auth.token.email == 'guest@bethelsda.local' && request.resource.data.role == 'Pastor or Church Elder')
+        );
+    }
+
     match /churches/{churchId} {
       allow read: if belongsToChurch(churchId);
       allow write: if isAdmin(churchId);
 
       match /users/{userId} {
         allow read: if belongsToChurch(churchId);
+        allow create, update: if approvedAccount() && validSelfRole(churchId, userId);
         allow write: if isAdmin(churchId);
       }
 
@@ -53,16 +75,8 @@ service cloud.firestore {
       }
 
       match /appState/{docId} {
-        allow read: if signedIn() && request.auth.token.email in [
-          'admin@bethelsda.local',
-          'treasurer@bethelsda.local',
-          'elder@bethelsda.local',
-          'guest@bethelsda.local'
-        ];
-        allow write: if signedIn() && request.auth.token.email in [
-          'admin@bethelsda.local',
-          'treasurer@bethelsda.local'
-        ];
+        allow read: if belongsToChurch(churchId);
+        allow write: if canWriteFinancial(churchId);
       }
 
       match /financialYears/{year}/months/{month}/{collection}/{docId} {

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { auth, hasFirebaseConfig } from "../firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db, hasFirebaseConfig } from "../firebase";
 import { seedState } from "../data/seedData";
 
 const AuthContext = createContext(null);
@@ -18,6 +19,21 @@ const FIREBASE_LOGIN_EMAILS = {
   guest: "guest@bethelsda.local",
   admin: "admin@bethelsda.local"
 };
+
+async function ensureFirebaseUserProfile(uid, appUser, email) {
+  await setDoc(
+    doc(db, `churches/${appUser.churchId}/users/${uid}`),
+    {
+      churchId: appUser.churchId,
+      name: appUser.name,
+      email,
+      role: appUser.role,
+      active: true,
+      updatedAt: new Date().toISOString()
+    },
+    { merge: true }
+  );
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("bethel-user") || "null"));
@@ -41,6 +57,7 @@ export function AuthProvider({ children }) {
         try {
           const email = FIREBASE_LOGIN_EMAILS[appUser.id];
           const credential = await signInWithEmailAndPassword(auth, email, password);
+          await ensureFirebaseUserProfile(credential.user.uid, appUser, email);
           const session = { uid: credential.user.uid, username: appUser.username, email, name: appUser.name, role: appUser.role, churchId: appUser.churchId };
           localStorage.setItem("bethel-user", JSON.stringify(session));
           setUser(session);

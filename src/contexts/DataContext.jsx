@@ -132,16 +132,12 @@ export function DataProvider({ children }) {
   useEffect(() => {
     if (!hasFirebaseConfig) return undefined;
     let unsubscribe;
+    let retryTimer;
     let cancelled = false;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+    function startSyncListener() {
+      if (cancelled || !auth.currentUser) return;
       unsubscribe?.();
-      unsubscribe = undefined;
-      if (!firebaseUser || cancelled) {
-        remoteReadyRef.current = false;
-        setSyncStatus({ state: "offline", message: "Login again to sync" });
-        return;
-      }
       try {
         setSyncStatus({ state: "waiting", message: "Connecting sync" });
         const stateDoc = doc(db, FIRESTORE_STATE_PATH);
@@ -165,6 +161,9 @@ export function DataProvider({ children }) {
           (error) => {
             remoteReadyRef.current = true;
             setSyncStatus({ state: "error", message: `Sync error: ${error.code || "permission denied"}` });
+            if (error.code === "permission-denied" && !cancelled) {
+              retryTimer = window.setTimeout(startSyncListener, 1500);
+            }
             console.warn("Unable to sync Firestore state", error);
           }
         );
@@ -173,9 +172,21 @@ export function DataProvider({ children }) {
         setSyncStatus({ state: "error", message: "Sync connection failed" });
         console.warn("Unable to connect shared Firestore state", error);
       }
+    }
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      unsubscribe?.();
+      unsubscribe = undefined;
+      if (!firebaseUser || cancelled) {
+        remoteReadyRef.current = false;
+        setSyncStatus({ state: "offline", message: "Login again to sync" });
+        return;
+      }
+      startSyncListener();
     });
     return () => {
       cancelled = true;
+      window.clearTimeout(retryTimer);
       unsubscribeAuth();
       unsubscribe?.();
     };
