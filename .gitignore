@@ -1,11 +1,8 @@
 node_modules/
 dist/
 .env
-<<<<<<< HEAD
 .env.local
 .env.*.local
-=======
->>>>>>> 387f710a49f2efc0baebd502eb32ec0083e8d7f1
 .firebase/
 firebase-debug.log
 npm-debug.log*
