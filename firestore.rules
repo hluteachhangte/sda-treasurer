@@ -52,6 +52,10 @@ service cloud.firestore {
         allow write: if isAdmin(churchId);
       }
 
+      match /appState/{docId} {
+        allow read, write: if signedIn();
+      }
+
       match /financialYears/{year}/months/{month}/{collection}/{docId} {
         allow read: if belongsToChurch(churchId);
         allow create: if canWriteFinancial(churchId);

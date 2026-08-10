@@ -79,6 +79,29 @@ churches
 
 Financial formulas are centralized in `src/utils/calculations.js`.
 
+## Cross-device Sync
+
+Phone and desktop sync through Firestore when Firebase config is present. For the GitHub Pages app, add these repository secrets in GitHub under Settings > Secrets and variables > Actions:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+
+In Firebase Console, enable Authentication > Sign-in method > Anonymous. Then deploy Firestore rules:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+The shared app state is stored at:
+
+```text
+churches/bethel-sda/appState/main
+```
+
 ## Deployment
 
 ```bash

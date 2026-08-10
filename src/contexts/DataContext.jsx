@@ -1,8 +1,32 @@
-import { createContext, useContext, useEffect, useMemo, useReducer } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
+import { signInAnonymously } from "firebase/auth";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { CHURCH_ID } from "../data/constants";
 import { seedState } from "../data/seedData";
+import { auth, db, hasFirebaseConfig } from "../firebase";
 
 const STORAGE_KEY = "bethel-treasurer-state";
+const FIRESTORE_STATE_PATH = `churches/${CHURCH_ID}/appState/main`;
 const DataContext = createContext(null);
+
+function hydrateState(parsed = {}) {
+  return {
+    ...seedState,
+    ...parsed,
+    settings: { ...seedState.settings, ...(parsed.settings || {}) },
+    users: parsed.users || seedState.users,
+    offerings: parsed.offerings || seedState.offerings,
+    localFundEntries: parsed.localFundEntries || seedState.localFundEntries,
+    localFund100Entries: parsed.localFund100Entries || seedState.localFund100Entries,
+    localFund100Worksheet: parsed.localFund100Worksheet || seedState.localFund100Worksheet,
+    missionFundEntries: parsed.missionFundEntries || seedState.missionFundEntries,
+    expenditures: parsed.expenditures || seedState.expenditures,
+    remittances: parsed.remittances || seedState.remittances,
+    audits: parsed.audits || seedState.audits,
+    auditLogs: parsed.auditLogs || seedState.auditLogs,
+    drafts: parsed.drafts || []
+  };
+}
 
 function addLog(state, log) {
   const stamp = new Date();
@@ -73,6 +97,8 @@ function reducer(state, action) {
       return addLog({ ...state, users: state.users.map((item) => (item.id === action.payload.id ? action.payload : item)) }, action.log);
     case "RESTORE":
       return addLog(action.payload, action.log);
+    case "SYNC_REMOTE":
+      return hydrateState(action.payload);
     case "ADD_DRAFT":
       return { ...state, drafts: [action.payload, ...state.drafts.filter((item) => item.id !== action.payload.id)] };
     case "CLEAR_DRAFT":
@@ -84,22 +110,80 @@ function reducer(state, action) {
 
 export function DataProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return seedState;
-    const parsed = JSON.parse(saved);
-    return {
-      ...seedState,
-      ...parsed,
-      localFundEntries: parsed.localFundEntries || seedState.localFundEntries,
-      localFund100Entries: parsed.localFund100Entries || seedState.localFund100Entries,
-      localFund100Worksheet: parsed.localFund100Worksheet || seedState.localFund100Worksheet,
-      missionFundEntries: parsed.missionFundEntries || seedState.missionFundEntries,
-      drafts: parsed.drafts || []
-    };
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? hydrateState(JSON.parse(saved)) : seedState;
+    } catch {
+      return seedState;
+    }
   });
+  const stateRef = useRef(state);
+  const remoteReadyRef = useRef(!hasFirebaseConfig);
+  const applyingRemoteRef = useRef(false);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    if (!hasFirebaseConfig) return undefined;
+    let unsubscribe;
+    let cancelled = false;
+
+    async function connect() {
+      try {
+        if (auth && !auth.currentUser) {
+          await signInAnonymously(auth);
+        }
+        if (cancelled) return;
+        const stateDoc = doc(db, FIRESTORE_STATE_PATH);
+        unsubscribe = onSnapshot(
+          stateDoc,
+          (snapshot) => {
+            if (snapshot.exists()) {
+              const remoteState = snapshot.data()?.state;
+              if (remoteState) {
+                applyingRemoteRef.current = true;
+                dispatch({ type: "SYNC_REMOTE", payload: remoteState });
+              }
+            } else {
+              setDoc(stateDoc, { state: stateRef.current, updatedAt: new Date().toISOString() }).catch((error) => {
+                console.warn("Unable to create shared Firestore state", error);
+              });
+            }
+            remoteReadyRef.current = true;
+          },
+          (error) => {
+            remoteReadyRef.current = true;
+            console.warn("Unable to sync Firestore state", error);
+          }
+        );
+      } catch (error) {
+        remoteReadyRef.current = true;
+        console.warn("Unable to connect shared Firestore state", error);
+      }
+    }
+
+    connect();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (!hasFirebaseConfig || !remoteReadyRef.current) return undefined;
+    if (applyingRemoteRef.current) {
+      applyingRemoteRef.current = false;
+      return undefined;
+    }
+    const timeout = window.setTimeout(() => {
+      setDoc(doc(db, FIRESTORE_STATE_PATH), { state, updatedAt: new Date().toISOString() }, { merge: true }).catch((error) => {
+        console.warn("Unable to save shared Firestore state", error);
+      });
+    }, 400);
+    return () => window.clearTimeout(timeout);
   }, [state]);
 
   const value = useMemo(() => ({ state, dispatch }), [state]);
