@@ -1,5 +1,5 @@
-import { createContext, useContext, useMemo, useState } from "react";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth, hasFirebaseConfig } from "../firebase";
 import { seedState } from "../data/seedData";
 
@@ -22,6 +22,16 @@ const FIREBASE_LOGIN_EMAILS = {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("bethel-user") || "null"));
   const [authError, setAuthError] = useState("");
+
+  useEffect(() => {
+    if (!hasFirebaseConfig) return undefined;
+    return onAuthStateChanged(auth, (firebaseUser) => {
+      if (!firebaseUser) {
+        localStorage.removeItem("bethel-user");
+        setUser(null);
+      }
+    });
+  }, []);
 
   async function login(username, password) {
     setAuthError("");

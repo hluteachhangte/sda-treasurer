@@ -150,6 +150,35 @@ img.brand-mark {
   color: var(--muted);
 }
 
+.sync-badge {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 0.35rem 0.6rem;
+  white-space: nowrap;
+}
+
+.sync-online {
+  background: #eaf6ee;
+  border-color: #b7ddc2;
+  color: var(--green);
+}
+
+.sync-waiting {
+  background: #fff8df;
+  border-color: #e6d28e;
+  color: var(--gold);
+}
+
+.sync-offline,
+.sync-error {
+  background: #fdecec;
+  border-color: #efb8b8;
+  color: var(--red);
+}
+
 .content {
   padding: 28px;
   max-width: 1500px;

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { CHURCH_ID } from "../data/constants";
@@ -120,6 +120,10 @@ export function DataProvider({ children }) {
   const stateRef = useRef(state);
   const remoteReadyRef = useRef(!hasFirebaseConfig);
   const applyingRemoteRef = useRef(false);
+  const [syncStatus, setSyncStatus] = useState(() => ({
+    state: hasFirebaseConfig ? "waiting" : "local",
+    message: hasFirebaseConfig ? "Waiting for Firebase login" : "Local only"
+  }));
 
   useEffect(() => {
     stateRef.current = state;
@@ -135,9 +139,11 @@ export function DataProvider({ children }) {
       unsubscribe = undefined;
       if (!firebaseUser || cancelled) {
         remoteReadyRef.current = false;
+        setSyncStatus({ state: "offline", message: "Login again to sync" });
         return;
       }
       try {
+        setSyncStatus({ state: "waiting", message: "Connecting sync" });
         const stateDoc = doc(db, FIRESTORE_STATE_PATH);
         unsubscribe = onSnapshot(
           stateDoc,
@@ -154,14 +160,17 @@ export function DataProvider({ children }) {
               });
             }
             remoteReadyRef.current = true;
+            setSyncStatus({ state: "online", message: "Synced" });
           },
           (error) => {
             remoteReadyRef.current = true;
+            setSyncStatus({ state: "error", message: `Sync error: ${error.code || "permission denied"}` });
             console.warn("Unable to sync Firestore state", error);
           }
         );
       } catch (error) {
         remoteReadyRef.current = true;
+        setSyncStatus({ state: "error", message: "Sync connection failed" });
         console.warn("Unable to connect shared Firestore state", error);
       }
     });
@@ -181,13 +190,14 @@ export function DataProvider({ children }) {
     }
     const timeout = window.setTimeout(() => {
       setDoc(doc(db, FIRESTORE_STATE_PATH), { state, updatedAt: new Date().toISOString() }, { merge: true }).catch((error) => {
+        setSyncStatus({ state: "error", message: `Save failed: ${error.code || "permission denied"}` });
         console.warn("Unable to save shared Firestore state", error);
       });
     }, 400);
     return () => window.clearTimeout(timeout);
   }, [state]);
 
-  const value = useMemo(() => ({ state, dispatch }), [state]);
+  const value = useMemo(() => ({ state, dispatch, syncStatus }), [state, syncStatus]);
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
 

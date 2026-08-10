@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useData } from "../contexts/DataContext";
 import { Button } from "./Button";
 
 export const pages = [
@@ -36,6 +37,7 @@ export const pages = [
 
 export function Layout({ activePage, setActivePage, children }) {
   const { user, logout } = useAuth();
+  const { syncStatus } = useData();
   const [open, setOpen] = useState(false);
   const availablePages = pages.filter((page) => page.roles.includes(user.role));
 
@@ -77,6 +79,7 @@ export function Layout({ activePage, setActivePage, children }) {
             <span>{user.name}</span>
             <small>{user.role}</small>
           </div>
+          <span className={`sync-badge sync-${syncStatus.state}`}>{syncStatus.message}</span>
           <Button variant="ghost" onClick={logout}>
             <LogOut size={18} />
             <span>Logout</span>
