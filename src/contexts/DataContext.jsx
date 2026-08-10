@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
-import { signInAnonymously } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { CHURCH_ID } from "../data/constants";
 import { seedState } from "../data/seedData";
@@ -130,12 +130,14 @@ export function DataProvider({ children }) {
     let unsubscribe;
     let cancelled = false;
 
-    async function connect() {
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      unsubscribe?.();
+      unsubscribe = undefined;
+      if (!firebaseUser || cancelled) {
+        remoteReadyRef.current = false;
+        return;
+      }
       try {
-        if (auth && !auth.currentUser) {
-          await signInAnonymously(auth);
-        }
-        if (cancelled) return;
         const stateDoc = doc(db, FIRESTORE_STATE_PATH);
         unsubscribe = onSnapshot(
           stateDoc,
@@ -162,11 +164,10 @@ export function DataProvider({ children }) {
         remoteReadyRef.current = true;
         console.warn("Unable to connect shared Firestore state", error);
       }
-    }
-
-    connect();
+    });
     return () => {
       cancelled = true;
+      unsubscribeAuth();
       unsubscribe?.();
     };
   }, []);

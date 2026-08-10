@@ -90,7 +90,16 @@ Phone and desktop sync through Firestore when Firebase config is present. For th
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
 
-In Firebase Console, enable Authentication > Sign-in method > Anonymous. Then deploy Firestore rules:
+In Firebase Console, enable Authentication > Sign-in method > Email/Password and create these users using the same passwords as the app login:
+
+- `treasurer@bethelsda.local`
+- `elder@bethelsda.local`
+- `guest@bethelsda.local`
+- `admin@bethelsda.local`
+
+The app login still uses the usernames `Treasurer`, `Elder`, `Guest`, and `admin`.
+
+Then deploy Firestore rules:
 
 ```bash
 firebase deploy --only firestore:rules

@@ -12,15 +12,39 @@ const APP_USERS = [
   { id: "admin", username: "admin", password: "admin_#123", name: "Admin", role: "Administrator", churchId: "bethel-sda" }
 ];
 
+const FIREBASE_LOGIN_EMAILS = {
+  treasurer: "treasurer@bethelsda.local",
+  elder: "elder@bethelsda.local",
+  guest: "guest@bethelsda.local",
+  admin: "admin@bethelsda.local"
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("bethel-user") || "null"));
   const [authError, setAuthError] = useState("");
 
   async function login(username, password) {
     setAuthError("");
-    const appUser = APP_USERS.find((item) => item.username.toLowerCase() === username.toLowerCase() && item.password === password);
+    const appUser = APP_USERS.find((item) => item.username.toLowerCase() === username.toLowerCase());
     if (appUser) {
-      const session = { uid: appUser.id, username: appUser.username, name: appUser.name, role: appUser.role, churchId: appUser.churchId };
+      if (hasFirebaseConfig) {
+        try {
+          const email = FIREBASE_LOGIN_EMAILS[appUser.id];
+          const credential = await signInWithEmailAndPassword(auth, email, password);
+          const session = { uid: credential.user.uid, username: appUser.username, email, name: appUser.name, role: appUser.role, churchId: appUser.churchId };
+          localStorage.setItem("bethel-user", JSON.stringify(session));
+          setUser(session);
+          return session;
+        } catch {
+          setAuthError("Invalid username or password.");
+          throw new Error("Failed login");
+        }
+      }
+      if (appUser.password !== password) {
+        setAuthError("Invalid username or password.");
+        throw new Error("Failed login");
+      }
+      const session = { uid: appUser.id, username: appUser.username, email: FIREBASE_LOGIN_EMAILS[appUser.id], name: appUser.name, role: appUser.role, churchId: appUser.churchId };
       localStorage.setItem("bethel-user", JSON.stringify(session));
       setUser(session);
       return session;

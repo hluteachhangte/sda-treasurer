@@ -53,7 +53,16 @@ service cloud.firestore {
       }
 
       match /appState/{docId} {
-        allow read, write: if signedIn();
+        allow read: if signedIn() && request.auth.token.email in [
+          'admin@bethelsda.local',
+          'treasurer@bethelsda.local',
+          'elder@bethelsda.local',
+          'guest@bethelsda.local'
+        ];
+        allow write: if signedIn() && request.auth.token.email in [
+          'admin@bethelsda.local',
+          'treasurer@bethelsda.local'
+        ];
       }
 
       match /financialYears/{year}/months/{month}/{collection}/{docId} {
