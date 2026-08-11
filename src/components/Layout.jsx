@@ -70,6 +70,7 @@ export function Layout({ activePage, setActivePage, children }) {
           })}
         </nav>
       </aside>
+      {open && <button className="sidebar-backdrop" aria-label="Close menu" onClick={() => setOpen(false)} />}
       <main className="main">
         <header className="topbar">
           <Button variant="ghost" className="menu-btn" onClick={() => setOpen((value) => !value)} aria-label="Menu">

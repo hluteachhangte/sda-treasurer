@@ -795,6 +795,10 @@ img.brand-mark {
   display: none;
 }
 
+.sidebar-backdrop {
+  display: none;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -811,6 +815,16 @@ img.brand-mark {
 
   .sidebar-open {
     transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    background: rgba(0, 0, 0, 0.28);
+    border: 0;
+    display: block;
+    inset: 0;
+    padding: 0;
+    position: fixed;
+    z-index: 11;
   }
 
   .btn.menu-btn {
