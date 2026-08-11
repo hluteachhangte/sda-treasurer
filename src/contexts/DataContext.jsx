@@ -68,6 +68,10 @@ function reducer(state, action) {
       return addLog({ ...state, localFund100Entries: (state.localFund100Entries || []).filter((item) => item.id !== action.payload.id) }, action.log);
     case "ADD_MISSION_FUND_ENTRY":
       return addLog({ ...state, missionFundEntries: [action.payload, ...(state.missionFundEntries || [])] }, action.log);
+    case "UPDATE_MISSION_FUND_ENTRY":
+      return addLog({ ...state, missionFundEntries: (state.missionFundEntries || []).map((item) => (item.id === action.payload.id ? action.payload : item)) }, action.log);
+    case "DELETE_MISSION_FUND_ENTRY":
+      return addLog({ ...state, missionFundEntries: (state.missionFundEntries || []).filter((item) => item.id !== action.payload.id) }, action.log);
     case "UPDATE_LOCAL_FUND_100_WORKSHEET":
       return { ...state, localFund100Worksheet: { ...(state.localFund100Worksheet || {}), ...action.payload } };
     case "ADD_EXPENDITURE":

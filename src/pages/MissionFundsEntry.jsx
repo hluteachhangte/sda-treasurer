@@ -1,4 +1,4 @@
-import { Plus, RotateCcw } from "lucide-react";
+import { Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "../components/Button";
 import { DataTable } from "../components/DataTable";
@@ -30,10 +30,11 @@ export function MissionFundsEntry() {
     receiptNo: "",
     amounts: blankAmounts
   });
+  const [editingId, setEditingId] = useState("");
 
   const entries = state.missionFundEntries || [];
   const selectedQuarter = state.settings.quarters.find((quarter) => quarter.id === form.quarter) || state.settings.quarters[0];
-  const duplicateReceipt = entries.some((entry) => entry.receiptNo === form.receiptNo && form.receiptNo.trim());
+  const duplicateReceipt = entries.some((entry) => entry.id !== editingId && entry.receiptNo === form.receiptNo && form.receiptNo.trim());
   const totalAmount = useMemo(
     () => MISSION_FUND_FIELDS.reduce((total, field) => total + toNumber(form.amounts[field.key]), 0),
     [form.amounts]
@@ -57,12 +58,14 @@ export function MissionFundsEntry() {
       receiptNo: "",
       amounts: blankAmounts
     }));
+    setEditingId("");
   }
 
   function addEntry() {
     if (!canAdd) return;
+    const existing = entries.find((entry) => entry.id === editingId);
     const record = {
-      id: crypto.randomUUID(),
+      id: editingId || crypto.randomUUID(),
       year: Number(form.year),
       quarter: form.quarter,
       quarterLabel: selectedQuarter?.label || form.quarter,
@@ -72,22 +75,54 @@ export function MissionFundsEntry() {
       receiptNo: form.receiptNo.trim(),
       amounts: Object.fromEntries(Object.entries(form.amounts).map(([key, value]) => [key, toNumber(value)])),
       totalAmount,
-      createdBy: user.name,
-      createdAt: new Date().toISOString()
+      createdBy: existing?.createdBy || user.name,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedBy: user.name,
+      updatedAt: new Date().toISOString()
     };
     dispatch({
-      type: "ADD_MISSION_FUND_ENTRY",
+      type: editingId ? "UPDATE_MISSION_FUND_ENTRY" : "ADD_MISSION_FUND_ENTRY",
       payload: record,
       log: {
         user: user.name,
         role: user.role,
-        action: "New mission fund entry",
+        action: editingId ? "Mission fund entry edit" : "New mission fund entry",
         recordType: "Mission Fund",
         recordId: record.id,
         newValue: record.receiptNo
       }
     });
     resetForm();
+  }
+
+  function editEntry(entry) {
+    setEditingId(entry.id);
+    setForm({
+      year: entry.year,
+      quarter: entry.quarter,
+      date: entry.date,
+      receivedFrom: entry.receivedFrom,
+      receiptNo: entry.receiptNo,
+      amounts: { ...blankAmounts, ...entry.amounts }
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function deleteEntry(entry) {
+    if (!window.confirm(`Delete receipt ${entry.receiptNo}?`)) return;
+    dispatch({
+      type: "DELETE_MISSION_FUND_ENTRY",
+      payload: entry,
+      log: {
+        user: user.name,
+        role: user.role,
+        action: "Mission fund entry delete",
+        recordType: "Mission Fund",
+        recordId: entry.id,
+        previousValue: entry.receiptNo
+      }
+    });
+    if (editingId === entry.id) resetForm();
   }
 
   const tableRows = entries.map((entry) => ({
@@ -110,7 +145,21 @@ export function MissionFundsEntry() {
       render: (row) => moneyOrBlank(row.amounts?.[field.key], state.settings.currencySymbol)
     })),
     { key: "totalDisplay", label: "Total" },
-    { key: "createdBy", label: "Entered By" }
+    { key: "createdBy", label: "Entered By" },
+    {
+      key: "actions",
+      label: "Edit/Delete",
+      render: (row) => (
+        <div className="row-actions">
+          <Button variant="ghost" onClick={() => editEntry(row)} aria-label={`Edit ${row.receiptNo}`}>
+            <Pencil size={16} />
+          </Button>
+          <Button variant="ghost" onClick={() => deleteEntry(row)} aria-label={`Delete ${row.receiptNo}`}>
+            <Trash2 size={16} />
+          </Button>
+        </div>
+      )
+    }
   ];
 
   return (
@@ -159,7 +208,7 @@ export function MissionFundsEntry() {
       </section>
 
       <div className="button-row">
-        <Button disabled={!canAdd} onClick={addEntry}><Plus size={18} /> Add</Button>
+        <Button disabled={!canAdd} onClick={addEntry}><Plus size={18} /> {editingId ? "Update" : "Add"}</Button>
         <Button variant="ghost" onClick={resetForm}><RotateCcw size={18} /> Reset</Button>
       </div>
 
