@@ -40,6 +40,9 @@ export function Layout({ activePage, setActivePage, children }) {
   const { syncStatus } = useData();
   const [open, setOpen] = useState(false);
   const availablePages = pages.filter((page) => page.roles.includes(user.role));
+  const bottomNavPages = ["local-funds-entry", "local-funds-100-entry", "dashboard", "mission-funds-entry", "expenditure-entry"]
+    .map((id) => availablePages.find((page) => page.id === id))
+    .filter(Boolean);
 
   return (
     <div className="app-shell">
@@ -89,7 +92,7 @@ export function Layout({ activePage, setActivePage, children }) {
         <div className="content">{children}</div>
       </main>
       <nav className="bottom-nav">
-        {availablePages.slice(0, 5).map((page) => {
+        {bottomNavPages.map((page) => {
           const Icon = page.icon;
           return (
             <button key={page.id} className={activePage === page.id ? "active" : ""} onClick={() => setActivePage(page.id)}>

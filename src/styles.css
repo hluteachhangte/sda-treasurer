@@ -871,14 +871,16 @@ img.brand-mark {
   }
 
   .bottom-nav button {
+    align-content: center;
     color: var(--muted);
-    justify-content: center;
     display: grid;
     gap: 2px;
     font-size: 0.68rem;
+    justify-items: center;
     border-radius: 0;
     min-width: 0;
     padding: 8px 4px;
+    text-align: center;
   }
 
   .bottom-nav button span {
