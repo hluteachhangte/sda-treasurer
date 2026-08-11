@@ -306,10 +306,13 @@
 @media (max-width: 640px) {
   .fund-report-screen {
     gap: 14px;
+    min-width: 0;
+    overflow-x: hidden;
   }
 
   .fund-report-toolbar {
     padding: 14px;
+    min-width: 0;
   }
 
   .report-page {
@@ -342,8 +345,42 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  .fund-report-screen .report-page {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .fund-report-screen .report-page .report-table-wrap {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-inline: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .local-fund-book-screen .local-fund-book-page {
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .local-fund-book-screen .local-fund-book-table-wrap {
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    border-radius: 8px;
+    margin-inline: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
   .report-table {
-    min-width: 640px;
+    font-size: 0.82rem;
+    min-width: 620px;
+  }
+
+  .report-table th,
+  .report-table td {
+    padding: 8px;
   }
 
   .report-section h4 {
@@ -383,12 +420,119 @@
   }
 
   .local-fund-book-table {
-    min-width: 760px;
+    font-size: 0.82rem;
+    min-width: 720px;
+  }
+
+  #local-fund-100-report-print .local-fund-book-table,
+  #expenditure-report-print .local-fund-book-table {
+    min-width: 1080px;
+  }
+
+  #mission-fund-report-print .local-fund-book-table {
+    min-width: 680px;
+  }
+
+  .local-fund-book-table th,
+  .local-fund-book-table td {
+    padding: 9px 10px;
   }
 
   .local-fund-book-signature {
-    margin-right: 24px;
+    margin: 64px 18px 18px auto;
     width: 190px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fund-report-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .report-page {
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+    padding: 14px 10px;
+  }
+
+  .report-heading h2 {
+    font-size: 0.9rem;
+  }
+
+  .report-heading h3 {
+    font-size: 0.9rem;
+  }
+
+  .report-heading p {
+    font-size: 0.82rem;
+  }
+
+  .report-section h4 {
+    font-size: 0.78rem;
+    padding: 7px 8px;
+  }
+
+  .report-table {
+    font-size: 0.78rem;
+    min-width: 560px;
+  }
+
+  .report-table th,
+  .report-table td {
+    padding: 7px;
+  }
+
+  .local-fund-book-page {
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+  }
+
+  .local-fund-book-heading h2 {
+    font-size: 0.86rem;
+    padding-inline: 8px;
+  }
+
+  .local-fund-book-meta {
+    font-size: 0.86rem;
+    padding-inline: 10px;
+  }
+
+  .local-fund-book-table {
+    font-size: 0.78rem;
+    min-width: 680px;
+  }
+
+  #local-fund-100-report-print .local-fund-book-table,
+  #expenditure-report-print .local-fund-book-table {
+    min-width: 980px;
+  }
+
+  #mission-fund-report-print .local-fund-book-table {
+    min-width: 620px;
+  }
+
+  .local-fund-book-table th,
+  .local-fund-book-table td {
+    padding: 8px;
+  }
+
+  .local-fund-book-signature {
+    margin-right: 12px;
+    width: 180px;
+  }
+
+  .report-signatures {
+    gap: 12px;
+  }
+
+  .signature-box {
+    min-height: 88px;
+  }
+
+  .signature-line {
+    margin-top: 34px;
   }
 }
 
