@@ -890,12 +890,8 @@ img.brand-mark {
     gap: 14px;
   }
 
-  .page-header,
-  .topbar {
-    align-items: stretch;
-  }
-
   .page-header {
+    align-items: stretch;
     display: grid;
     gap: 8px;
   }
@@ -919,14 +915,33 @@ img.brand-mark {
   }
 
   .topbar {
+    align-items: center;
     height: 64px;
     padding: 0 12px;
     gap: 8px;
   }
 
   .topbar .btn {
+    align-self: center;
+    min-height: 40px;
     padding-inline: 10px;
     white-space: nowrap;
+  }
+
+  .topbar .menu-btn {
+    flex: 0 0 40px;
+    padding-inline: 0;
+  }
+
+  .topbar .sync-badge {
+    align-self: center;
+    flex: 0 1 auto;
+    font-size: 0.7rem;
+    line-height: 1;
+    max-width: 92px;
+    overflow: hidden;
+    padding: 0.35rem 0.45rem;
+    text-overflow: ellipsis;
   }
 
   .topbar-user {
