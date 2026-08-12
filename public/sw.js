@@ -1,6 +1,6 @@
-const CACHE_NAME = "bethel-treasurer-v1";
+const CACHE_NAME = "bethel-treasurer-v2";
 const BASE_PATH = "/sda-treasurer/";
-const STATIC_ASSETS = [BASE_PATH, `${BASE_PATH}index.html`, `${BASE_PATH}manifest.webmanifest`, `${BASE_PATH}icons/icon.svg`];
+const STATIC_ASSETS = [BASE_PATH, `${BASE_PATH}index.html`, `${BASE_PATH}manifest.webmanifest`, `${BASE_PATH}church-logo.png`];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
