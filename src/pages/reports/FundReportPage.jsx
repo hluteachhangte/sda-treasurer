@@ -1,11 +1,12 @@
 import { Download, Printer, RefreshCcw, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "../../components/Button";
-import { Field, Select } from "../../components/Field";
+import { Field, Input, Select } from "../../components/Field";
 import { PageHeader } from "../../components/PageHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { useData } from "../../contexts/DataContext";
 import { MONTHS } from "../../data/constants";
+import { getDateRangeLabel } from "../../utils/dateFilters";
 import {
   buildFundReportFromState,
   formatINR,
@@ -28,7 +29,7 @@ export function FundReportPage() {
   const { user } = useAuth();
   const years = getFundReportYears(state);
   const defaultYear = getDefaultYear(years);
-  const [filters, setFilters] = useState({ year: defaultYear, quarter: "all", month: "all" });
+  const [filters, setFilters] = useState({ year: defaultYear, quarter: "all", month: "all", fromDate: "", toDate: "" });
   const [refreshKey, setRefreshKey] = useState(0);
   const report = useMemo(() => buildFundReportFromState(state, filters), [state, filters, refreshKey]);
   const summary = report.summary;
@@ -59,7 +60,7 @@ export function FundReportPage() {
   }
 
   function resetFilters() {
-    setFilters({ year: defaultYear, quarter: "all", month: "all" });
+    setFilters({ year: defaultYear, quarter: "all", month: "all", fromDate: "", toDate: "" });
     setRefreshKey((key) => key + 1);
   }
 
@@ -97,6 +98,12 @@ export function FundReportPage() {
               <option value="all">All Months</option>
               {MONTHS.map((month, index) => <option key={month} value={index + 1}>{month}</option>)}
             </Select>
+          </Field>
+          <Field label="From Date">
+            <Input type="date" value={filters.fromDate} onChange={(event) => setFilters({ ...filters, fromDate: event.target.value })} />
+          </Field>
+          <Field label="To Date">
+            <Input type="date" value={filters.toDate} onChange={(event) => setFilters({ ...filters, toDate: event.target.value })} />
           </Field>
         </div>
         <div className="fund-report-actions">
@@ -241,11 +248,13 @@ function getDefaultYear(years) {
 
 function getReportPeriod(filters) {
   const year = Number(filters.year);
+  const dateRange = getDateRangeLabel(filters);
+  const dateSuffix = dateRange ? ` | Date: ${dateRange}` : "";
   if (filters.month !== "all") {
     const monthName = MONTHS[Number(filters.month) - 1];
     return {
       title: "Monthly Treasurer's Fund Report",
-      subtitle: `${monthName} ${year}`,
+      subtitle: `${monthName} ${year}${dateSuffix}`,
       filename: `Bethel_Fund_Report_${year}_${monthName}.pdf`
     };
   }
@@ -254,13 +263,13 @@ function getReportPeriod(filters) {
     const months = quarterMonths(filters.quarter);
     return {
       title: "Quarterly Treasurer's Fund Report",
-      subtitle: `${quarterIndex}${ordinalSuffix(quarterIndex)} Quarter, ${year} | ${MONTHS[months[0] - 1]} - ${MONTHS[months[2] - 1]} ${year}`,
+      subtitle: `${quarterIndex}${ordinalSuffix(quarterIndex)} Quarter, ${year} | ${MONTHS[months[0] - 1]} - ${MONTHS[months[2] - 1]} ${year}${dateSuffix}`,
       filename: `Bethel_Fund_Report_${year}_${filters.quarter}.pdf`
     };
   }
   return {
     title: "Annual Treasurer's Fund Report",
-    subtitle: `January - December ${year}`,
+    subtitle: `January - December ${year}${dateSuffix}`,
     filename: `Bethel_Fund_Report_${year}_Annual.pdf`
   };
 }

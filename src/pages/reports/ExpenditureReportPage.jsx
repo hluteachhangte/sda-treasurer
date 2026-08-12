@@ -1,11 +1,12 @@
 import { Printer, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "../../components/Button";
-import { Field, Select } from "../../components/Field";
+import { Field, Input, Select } from "../../components/Field";
 import { PageHeader } from "../../components/PageHeader";
 import { useData } from "../../contexts/DataContext";
 import { MONTHS } from "../../data/constants";
 import { money, toNumber } from "../../utils/calculations";
+import { formatDateDash, getDateRangeLabel, recordMatchesDateRange } from "../../utils/dateFilters";
 import "../../styles/fund-report.css";
 
 const EXPENDITURE_REPORT_FIELDS = [
@@ -25,12 +26,13 @@ export function ExpenditureReportPage() {
   const years = getAvailableYears(state.expenditures);
   const defaultYear = getDefaultYear(years);
   const defaultQuarter = getDefaultQuarter(state.settings.quarters);
-  const [filters, setFilters] = useState({ year: defaultYear, quarter: defaultQuarter, month: "all" });
+  const [filters, setFilters] = useState({ year: defaultYear, quarter: defaultQuarter, month: "all", fromDate: "", toDate: "" });
   const quarterMonths = getQuarterMonths(state.settings.quarters, filters.quarter);
   const monthOptions = filters.quarter === "all" ? MONTHS.map((month, index) => ({ label: month, value: index + 1 })) : quarterMonths.map((month) => ({ label: MONTHS[month - 1], value: month }));
   const rows = useMemo(() => filterEntries(state.expenditures, filters, state.settings.quarters), [state.expenditures, filters, state.settings.quarters]);
   const totals = calculateTotals(rows);
   const period = getPeriodLabel(filters, state.settings.quarters);
+  const dateRangeLabel = getDateRangeLabel(filters);
 
   function updateQuarter(quarter) {
     setFilters((current) => {
@@ -43,7 +45,7 @@ export function ExpenditureReportPage() {
   }
 
   function resetFilters() {
-    setFilters({ year: defaultYear, quarter: defaultQuarter, month: "all" });
+    setFilters({ year: defaultYear, quarter: defaultQuarter, month: "all", fromDate: "", toDate: "" });
   }
 
   return (
@@ -69,6 +71,12 @@ export function ExpenditureReportPage() {
               {monthOptions.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}
             </Select>
           </Field>
+          <Field label="From Date">
+            <Input type="date" value={filters.fromDate} onChange={(event) => setFilters({ ...filters, fromDate: event.target.value })} />
+          </Field>
+          <Field label="To Date">
+            <Input type="date" value={filters.toDate} onChange={(event) => setFilters({ ...filters, toDate: event.target.value })} />
+          </Field>
         </div>
         <div className="fund-report-actions">
           <Button variant="secondary" disabled={!rows.length} onClick={() => window.print()}><Printer size={18} /> Print Report</Button>
@@ -83,6 +91,7 @@ export function ExpenditureReportPage() {
             <strong>Church: Bethel Church</strong>
             <strong>{period.label}: {period.value}</strong>
             <strong>Year: {filters.year}</strong>
+            {dateRangeLabel && <strong>Date: {dateRangeLabel}</strong>}
           </div>
         </header>
 
@@ -135,6 +144,7 @@ function filterEntries(entries = [], filters, quarters = []) {
     .filter((entry) => {
       if (entry.status === "Cancelled" || entry.status === "Deleted") return false;
       if (Number(entry.year) !== Number(filters.year)) return false;
+      if (!recordMatchesDateRange(entry, filters)) return false;
       const month = Number(entry.month || new Date(entry.date).getMonth() + 1);
       if (filters.month !== "all") return month === Number(filters.month);
       if (filters.quarter !== "all") {
@@ -188,12 +198,6 @@ function getPeriodLabel(filters, quarters = []) {
   if (filters.month !== "all") return { label: "Month", value: MONTHS[Number(filters.month) - 1] };
   if (filters.quarter !== "all") return { label: "Quarter", value: quarters.find((quarter) => quarter.id === filters.quarter)?.label || filters.quarter };
   return { label: "Month", value: "All Months" };
-}
-
-function formatDateDash(value) {
-  if (!value) return "";
-  const [year, month, day] = value.split("-");
-  return `${day}-${month}-${year}`;
 }
 
 function moneyOrBlank(value, symbol) {

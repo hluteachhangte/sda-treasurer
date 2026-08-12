@@ -1,3 +1,5 @@
+import { recordMatchesDateRange } from "./dateFilters";
+
 const SHARED_FIELDS = [
   { key: "ssOffering", legacyKey: "sabbathSchool", label: "Sabbath School" },
   { key: "birthdayThanks", label: "Birthday & Thanks" },
@@ -70,6 +72,7 @@ export function filterOfferingRecords(records = [], filters) {
     .map(normaliseOfferingRecord)
     .filter((record) => {
       if (Number(record.year) !== Number(filters.year)) return false;
+      if (!recordMatchesDateRange(record, filters)) return false;
       const month = Number(record.month || new Date(record.date).getMonth() + 1);
       if (filters.month !== "all") return month === Number(filters.month);
       if (filters.quarter !== "all") return quarterMonths(filters.quarter).includes(month);
@@ -272,6 +275,7 @@ export function roundMoney(value) {
 export function filterEntryRecords(records = [], filters) {
   return (records || []).filter((record) => {
     if (Number(record.year) !== Number(filters.year)) return false;
+    if (!recordMatchesDateRange(record, filters)) return false;
     const month = Number(record.month || new Date(record.date).getMonth() + 1);
     if (filters.month !== "all") return month === Number(filters.month);
     if (filters.quarter !== "all") return String(record.quarter) === String(filters.quarter) || quarterMonths(filters.quarter).includes(month);
