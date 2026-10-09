@@ -61,10 +61,11 @@ export function LocalFunds100Entry() {
   const entries = state.localFund100Entries || [];
   const worksheet = state.localFund100Worksheet || {};
   const openingBalances = { ...blankAmounts, ...(worksheet.openingBalances || {}) };
-  const expenses = useMemo(
-    () => calculateExpenditureExpenseTotals(state.expenditures, form.year, form.quarter, state.settings.quarters),
+  const expenseSummary = useMemo(
+    () => calculateExpenditureExpenseSummary(state.expenditures, form.year, form.quarter, state.settings.quarters),
     [state.expenditures, form.year, form.quarter, state.settings.quarters]
   );
+  const expenses = expenseSummary.totals;
   const [openingBalanceDraft, setOpeningBalanceDraft] = useState(openingBalances);
   const expenseRollup = rollupExpenses(expenses);
   const selectedQuarter = state.settings.quarters.find((quarter) => quarter.id === form.quarter) || state.settings.quarters[0];
@@ -326,7 +327,7 @@ export function LocalFunds100Entry() {
         <div className="money-grid">
           {EXPENSE_FIELDS.map((field) => (
             <Field key={field.key} label={field.label}>
-              <Input type="number" min="0" step="0.01" value={expenses[field.key] || ""} disabled />
+              <Input type="number" min="0" step="0.01" value={formatExpenseInput(expenses[field.key])} disabled />
             </Field>
           ))}
         </div>
@@ -334,6 +335,10 @@ export function LocalFunds100Entry() {
           <div className="mini-summary-card">
             <span>Total Expense</span>
             <strong>{money(totalExpenses, state.settings.currencySymbol)}</strong>
+          </div>
+          <div className="mini-summary-card">
+            <span>Entered Expenditures Used</span>
+            <strong>{expenseSummary.count}</strong>
           </div>
         </section>
       </section>
@@ -383,20 +388,21 @@ function rollupExpenses(expenses = {}) {
   }, {});
 }
 
-function calculateExpenditureExpenseTotals(expenditures = [], year, quarterId, quarters = []) {
-  return EXPENSE_FIELDS.reduce((totals, field) => {
-    totals[field.key] = (expenditures || [])
-      .filter((entry) => entry.status !== "Cancelled" && entry.status !== "Deleted")
-      .filter((entry) => Number(entry.year) === Number(year))
-      .filter((entry) => {
-        if (!quarterId) return true;
-        const month = Number(entry.month || new Date(entry.date).getMonth() + 1);
-        const quarter = quarters.find((item) => item.id === quarterId);
-        return entry.quarter === quarterId || quarter?.months.includes(month);
-      })
-      .reduce((sum, entry) => sum + readExpenseHead(entry.expenseHeads, field.key), 0);
+function calculateExpenditureExpenseSummary(expenditures = [], year, quarterId, quarters = []) {
+  const matchingEntries = (expenditures || [])
+    .filter((entry) => entry.status !== "Cancelled" && entry.status !== "Deleted")
+    .filter((entry) => Number(entry.year) === Number(year))
+    .filter((entry) => {
+      if (!quarterId) return true;
+      const month = Number(entry.month || new Date(entry.date).getMonth() + 1);
+      const quarter = quarters.find((item) => item.id === quarterId);
+      return entry.quarter === quarterId || quarter?.months.includes(month);
+    });
+  const totals = EXPENSE_FIELDS.reduce((totals, field) => {
+    totals[field.key] = matchingEntries.reduce((sum, entry) => sum + readExpenseHead(entry.expenseHeads, field.key), 0);
     return totals;
   }, { ...blankExpenseAmounts });
+  return { totals, count: matchingEntries.length };
 }
 
 function readExpenseHead(expenseHeads = {}, key) {
@@ -408,4 +414,8 @@ function readExpenseHead(expenseHeads = {}, key) {
     acs: ["acs", "poorFund"]
   };
   return (aliases[key] || [key]).reduce((sum, alias) => sum + toNumber(expenseHeads?.[alias]), 0);
+}
+
+function formatExpenseInput(value) {
+  return toNumber(value).toFixed(2);
 }
