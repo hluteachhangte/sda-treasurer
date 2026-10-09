@@ -51,6 +51,14 @@ export const seedState = {
     voucherFormat: "BSCV/{year}/{month}/{seq}",
     openingLocalBalance: 125000,
     openingMissionBalance: 45000,
+    openingBalanceSetup: {
+      year: 2026,
+      startingQuarter: "Q3",
+      startDate: "2026-07-01",
+      cashOnHand: 0,
+      bankBalance: 0,
+      notes: ""
+    },
     percentageAllocation: 50,
     quarters: DEFAULT_QUARTERS,
     offeringCategories: OFFERING_CATEGORIES,

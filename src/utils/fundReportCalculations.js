@@ -14,7 +14,7 @@ const LOCAL_100_FIELDS = [
   { key: "ay", label: "A.Y." },
   { key: "womensMinistries", label: "Women's Ministries" },
   { key: "acs", label: "A.C.S." },
-  { key: "buildingFund", label: "Building Fund" },
+  { key: "buildingFund", legacyKey: "building", label: "Building Fund" },
   { key: "others", label: "Others" }
 ];
 
@@ -127,20 +127,21 @@ export function buildFundReportFromState(state = {}, filters) {
   return {
     source,
     recordCount: source.local50.length + source.local100.length + source.mission.length,
-    summary: calculateFundSummaryFromEntrySources(source, state.localFund100Worksheet)
+    summary: calculateFundSummaryFromEntrySources(source, state.localFund100Worksheet, state.settings)
   };
 }
 
-export function calculateFundSummaryFromEntrySources({ local50 = [], local100 = [], mission = [], expenditures = [] } = {}, worksheet = {}) {
+export function calculateFundSummaryFromEntrySources({ local50 = [], local100 = [], mission = [], expenditures = [] } = {}, worksheet = {}, settings = {}) {
   const sectionA = calculateSharedOfferingRows(local50);
   const sectionB = calculateLocalFund100(local100);
   const sectionC = calculateDirectMissionFund(mission);
   const missionFiftyPercent = sumRecords(mission, { key: "fiftyPercentFromLocalFunds" });
   const fiftyPercentOffering = missionFiftyPercent > 0 ? missionFiftyPercent : sectionA.total.missionFund;
+  const openingLocalBalance = totalObjectValues(worksheet?.openingBalances) + safeNumber(settings?.openingLocalBalance);
   return buildSummary(sectionA, sectionB, sectionC, {
     fiftyPercentOffering,
     originalCategoryTotal: sectionA.total.localFund + sectionB.total + sectionC.total + fiftyPercentOffering,
-    openingBalance: totalObjectValues(worksheet?.openingBalances),
+    openingBalance: openingLocalBalance,
     totalExpense: totalExpenditureRows(expenditures)
   });
 }

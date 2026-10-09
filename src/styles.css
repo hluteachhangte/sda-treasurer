@@ -48,11 +48,13 @@ textarea {
 .sidebar {
   background: var(--blue);
   color: white;
+  inset: 0 auto 0 0;
   padding: 20px 14px;
-  position: sticky;
-  top: 0;
+  position: fixed;
+  width: 290px;
   height: 100vh;
   overflow-y: auto;
+  z-index: 15;
 }
 
 .brand {
@@ -118,6 +120,7 @@ img.brand-mark {
 }
 
 .main {
+  grid-column: 2;
   min-width: 0;
 }
 
@@ -804,8 +807,11 @@ img.brand-mark {
     grid-template-columns: 1fr;
   }
 
+  .main {
+    grid-column: 1;
+  }
+
   .sidebar {
-    position: fixed;
     inset: 0 auto 0 0;
     width: 290px;
     transform: translateX(-100%);

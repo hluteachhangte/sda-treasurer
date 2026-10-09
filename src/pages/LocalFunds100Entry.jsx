@@ -322,7 +322,7 @@ export function LocalFunds100Entry() {
       />
 
       <section className="form-card">
-        <h2>Expense</h2>
+        <h2>Expense from Expenditure Entry</h2>
         <div className="money-grid">
           {EXPENSE_FIELDS.map((field) => (
             <Field key={field.key} label={field.label}>
@@ -330,6 +330,12 @@ export function LocalFunds100Entry() {
             </Field>
           ))}
         </div>
+        <section className="mini-summary-grid local-funds-summary local-funds-summary-single">
+          <div className="mini-summary-card">
+            <span>Total Expense</span>
+            <strong>{money(totalExpenses, state.settings.currencySymbol)}</strong>
+          </div>
+        </section>
       </section>
 
       <FundSummaryRow

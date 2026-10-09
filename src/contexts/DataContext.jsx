@@ -74,6 +74,18 @@ function reducer(state, action) {
       return addLog({ ...state, missionFundEntries: (state.missionFundEntries || []).filter((item) => item.id !== action.payload.id) }, action.log);
     case "UPDATE_LOCAL_FUND_100_WORKSHEET":
       return { ...state, localFund100Worksheet: { ...(state.localFund100Worksheet || {}), ...action.payload } };
+    case "UPDATE_OPENING_BALANCE_SETUP":
+      return addLog(
+        {
+          ...state,
+          settings: { ...state.settings, ...(action.payload.settings || {}) },
+          localFund100Worksheet: {
+            ...(state.localFund100Worksheet || {}),
+            ...(action.payload.localFund100Worksheet || {})
+          }
+        },
+        action.log
+      );
     case "ADD_EXPENDITURE":
       return addLog({ ...state, expenditures: [action.payload, ...state.expenditures] }, action.log);
     case "UPDATE_EXPENDITURE":

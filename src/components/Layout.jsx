@@ -18,6 +18,7 @@ import { Button } from "./Button";
 
 export const pages = [
   { id: "dashboard", label: "Dashboard", icon: Home, roles: ["Administrator", "Treasurer", "Assistant Treasurer", "Auditor", "Pastor or Church Elder"] },
+  { id: "opening-balance-setup", label: "Opening Balance Setup", icon: WalletCards, roles: ["Administrator", "Treasurer", "Assistant Treasurer"] },
   { id: "local-funds-entry", label: "Local Fund (50%) Entry", icon: Landmark, roles: ["Administrator", "Treasurer", "Assistant Treasurer"] },
   { id: "local-funds-100-entry", label: "Local Fund (100%) Entry", icon: Landmark, roles: ["Administrator", "Treasurer", "Assistant Treasurer"] },
   { id: "mission-funds-entry", label: "Mission Fund Entry", icon: BookOpenCheck, roles: ["Administrator", "Treasurer", "Assistant Treasurer"] },

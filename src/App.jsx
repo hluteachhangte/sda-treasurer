@@ -4,6 +4,7 @@ import { DataProvider } from "./contexts/DataContext";
 import { Layout, pages } from "./components/Layout";
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
+import { OpeningBalanceSetup } from "./pages/OpeningBalanceSetup";
 import { LocalFundsEntry } from "./pages/LocalFundsEntry";
 import { LocalFunds100Entry } from "./pages/LocalFunds100Entry";
 import { MissionFundsEntry } from "./pages/MissionFundsEntry";
@@ -27,6 +28,7 @@ import { AuditLog } from "./pages/AuditLog";
 
 const PageMap = {
   dashboard: Dashboard,
+  "opening-balance-setup": OpeningBalanceSetup,
   "local-funds-entry": LocalFundsEntry,
   "local-funds-100-entry": LocalFunds100Entry,
   "mission-funds-entry": MissionFundsEntry,
